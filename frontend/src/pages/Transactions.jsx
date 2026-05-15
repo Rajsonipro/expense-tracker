@@ -62,11 +62,35 @@ const Transactions = () => {
   };
 
   const downloadCSV = async () => {
-    window.open('http://localhost:5001/api/transactions/export/csv', '_blank');
+    try {
+      const response = await api.get('/api/transactions/export/csv', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'transactions.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export CSV');
+    }
   };
 
   const downloadPDF = async () => {
-    window.open('http://localhost:5001/api/transactions/export/pdf', '_blank');
+    try {
+      const response = await api.get('/api/transactions/export/pdf', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'transactions.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export PDF');
+    }
   };
 
   return (

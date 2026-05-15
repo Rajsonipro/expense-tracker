@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Analytics from './pages/Analytics';
 import Budget from './pages/Budget';
+import Subscriptions from './pages/Subscriptions';
 import Layout from './components/Layout';
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/budget" element={<Budget />} />
+          <Route path="/subscriptions" element={<Subscriptions />} />
         </Route>
       </Routes>
     </Router>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, List, PieChart, Wallet, LogOut, Zap } from 'lucide-react';
+import { Home, List, PieChart, Wallet, LogOut, Zap, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
@@ -11,6 +11,7 @@ const Sidebar = () => {
     { name: 'Transactions', path: '/transactions', icon: List },
     { name: 'Analytics', path: '/analytics', icon: PieChart },
     { name: 'Budget', path: '/budget', icon: Wallet },
+    { name: 'Subscriptions', path: '/subscriptions', icon: CreditCard },
   ];
 
   return (

@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Download, Trash2 } from 'lucide-react';
+import { Plus, Download, Trash2, Sparkles } from 'lucide-react';
 import { formatINR } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
+import ReceiptScanner from '../components/ReceiptScanner';
 
 const Transactions = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [formData, setFormData] = useState({
     title: '', amount: '', type: 'expense', category: '', date: '', note: ''
   });
@@ -81,11 +83,25 @@ const Transactions = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-2">Manage and track all your transactions</p>
         </div>
         {user && (
-          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl transition shadow-lg font-medium">
-            <Plus size={20} /> Add Transaction
-          </button>
+          <div className="flex gap-3">
+             <button 
+              onClick={() => setShowScanner(true)} 
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl transition shadow-lg font-medium"
+            >
+              <Sparkles size={20} /> AI Scan
+            </button>
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl transition shadow-lg font-medium">
+              <Plus size={20} /> Add Manual
+            </button>
+          </div>
         )}
       </div>
+
+      <ReceiptScanner 
+        isOpen={showScanner} 
+        onClose={() => setShowScanner(false)} 
+        onTransactionAdded={fetchTransactions} 
+      />
 
       <div className="flex flex-col sm:flex-row gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
         <select onChange={e => setTypeFilter(e.target.value)} className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg px-4 py-2.5 outline-none hover:border-slate-300 focus:ring-2 focus:ring-blue-500 transition">

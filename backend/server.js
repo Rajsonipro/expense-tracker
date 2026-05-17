@@ -12,6 +12,7 @@ import exportRoutes from './routes/exportRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import scanRoutes from './routes/scanRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -32,6 +33,7 @@ app.use('/api/budget', budgetRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/scan', scanRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/', (req, res) => {
   res.send('Expense Tracker API is running...');

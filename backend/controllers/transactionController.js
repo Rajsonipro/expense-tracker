@@ -1,5 +1,6 @@
 import Transaction from '../models/Transaction.js';
 import Budget from '../models/Budget.js';
+import mongoose from 'mongoose';
 
 export const getTransactions = async (req, res) => {
   try {
@@ -38,9 +39,6 @@ export const getTransactions = async (req, res) => {
 
 export const createTransaction = async (req, res) => {
   try {
-    console.log('Creating transaction for user:', req.user._id);
-    console.log('Request body:', req.body);
-
     const { title, amount, type, category, date, note } = req.body;
 
     if (!title || !amount || !type || !category || !date) {
@@ -63,8 +61,6 @@ export const createTransaction = async (req, res) => {
       note: note?.trim(),
     });
 
-    console.log('Transaction created:', transaction._id);
-
     // Update budget spent amount if it's an expense
     if (type === 'expense') {
       try {
@@ -76,16 +72,14 @@ export const createTransaction = async (req, res) => {
         if (budget) {
           budget.spentAmount += Number(amount);
           await budget.save();
-          console.log('Budget updated for month:', month, year);
         }
       } catch (budgetErr) {
-        console.error('Budget update failed (transaction will still be saved):', budgetErr);
+        console.error('Budget update failed:', budgetErr);
       }
     }
 
     res.status(201).json(transaction);
   } catch (error) {
-    console.error('Error creating transaction:', error);
     res.status(400).json({ message: error.message });
   }
 };
@@ -104,7 +98,7 @@ export const updateTransaction = async (req, res) => {
       throw new Error('User not authorized');
     }
 
-    // Handle budget adjustments if amount or type changed (Simplified here)
+    // Handle budget adjustments if amount or type changed
     if (transaction.type === 'expense') {
       const transDate = new Date(transaction.date);
       const month = transDate.getMonth() + 1;
@@ -163,3 +157,4 @@ export const deleteTransaction = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+

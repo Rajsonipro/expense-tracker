@@ -1,4 +1,5 @@
 import Budget from '../models/Budget.js';
+import mongoose from 'mongoose';
 
 export const getBudget = async (req, res) => {
   try {
@@ -64,3 +65,4 @@ export const updateBudget = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+

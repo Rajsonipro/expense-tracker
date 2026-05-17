@@ -1,5 +1,6 @@
 import Transaction from '../models/Transaction.js';
 import Budget from '../models/Budget.js';
+import mongoose from 'mongoose';
 
 export const getForecast = async (req, res) => {
   try {
@@ -17,6 +18,8 @@ export const getForecast = async (req, res) => {
       type: 'expense',
       date: { $gte: startOfMonth, $lte: today }
     });
+    
+    const budget = await Budget.findOne({ userId: req.user._id, month: currentMonth, year: currentYear });
 
     // Calculate total spent so far
     const totalSpent = transactions.reduce((acc, curr) => acc + curr.amount, 0);
@@ -27,9 +30,6 @@ export const getForecast = async (req, res) => {
     // Forecast = (Average Daily Spend * Days in Month)
     const forecastedTotal = averageDailySpend * daysInMonth;
 
-    // See if there's a budget for this month
-    const budget = await Budget.findOne({ userId: req.user._id, month: currentMonth, year: currentYear });
-    
     let status = 'On Track';
     if (budget && forecastedTotal > budget.limitAmount) {
         status = 'Over Budget Projected';
@@ -49,3 +49,4 @@ export const getForecast = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+

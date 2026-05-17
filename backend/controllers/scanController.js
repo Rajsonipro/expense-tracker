@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const scanReceipt = async (req, res) => {
   try {
@@ -12,7 +12,8 @@ export const scanReceipt = async (req, res) => {
       return res.status(500).json({ message: 'Gemini API key is not configured' });
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     // Assume imageBase64 has the 'data:image/jpeg;base64,' prefix stripped
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -24,27 +25,35 @@ export const scanReceipt = async (req, res) => {
       "date": (The date on the receipt in YYYY-MM-DD format, or today's date if not found)
     `;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-            prompt,
-            {
-                inlineData: {
-                    data: base64Data,
-                    mimeType: 'image/jpeg' 
-                }
-            }
-        ]
-    });
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: 'image/jpeg'
+        }
+      }
+    ]);
 
-    let rawText = response.text;
+    const response = await result.response;
+
+
+    let rawText = response.text();
+    console.log('Gemini Raw Response:', rawText);
+    
+    // Clean up markdown if present
     rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
     
-    const parsedData = JSON.parse(rawText);
-
-    res.json(parsedData);
+    try {
+        const parsedData = JSON.parse(rawText);
+        res.json(parsedData);
+    } catch (parseError) {
+        console.error('JSON Parse Error:', parseError, 'Raw Text:', rawText);
+        res.status(500).json({ message: 'Failed to parse AI response' });
+    }
   } catch (error) {
     console.error('Gemini API Error:', error);
     res.status(500).json({ message: 'Failed to process receipt: ' + error.message });
   }
 };
+

@@ -42,15 +42,16 @@ export const exportPdf = async (req, res) => {
       else totalExpense += t.amount;
 
       doc.fontSize(12).text(`${new Date(t.date).toLocaleDateString()} - ${t.title}`);
-      doc.fontSize(10).text(`Type: ${t.type} | Category: ${t.category} | Amount: $${t.amount}`);
+      doc.fontSize(10).text(`Type: ${t.type} | Category: ${t.category} | Amount: ₹${t.amount}`);
       if (t.note) doc.fontSize(10).text(`Note: ${t.note}`);
       doc.moveDown(0.5);
     });
 
     doc.moveDown();
-    doc.fontSize(14).text(`Total Income: $${totalIncome}`);
-    doc.fontSize(14).text(`Total Expense: $${totalExpense}`);
-    doc.fontSize(14).text(`Net Balance: $${totalIncome - totalExpense}`);
+    doc.fontSize(14).text(`Total Income: ₹${totalIncome}`);
+    doc.fontSize(14).text(`Total Expense: ₹${totalExpense}`);
+    doc.fontSize(14).text(`Net Balance: ₹${totalIncome - totalExpense}`);
+
 
     doc.end();
   } catch (error) {

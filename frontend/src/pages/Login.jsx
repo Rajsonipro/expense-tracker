@@ -60,7 +60,10 @@ const Login = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Password</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
+                <Link to="/forgot-password" size={18} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Forgot password?</Link>
+              </div>
               <div className="relative">
                 <Lock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input 
@@ -77,6 +80,7 @@ const Login = () => {
             <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 mt-2">
               Sign In <ArrowRight size={18} />
             </button>
+
           </form>
 
           <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">

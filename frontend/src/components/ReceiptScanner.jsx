@@ -25,14 +25,20 @@ const ReceiptScanner = ({ isOpen, onClose, onTransactionAdded }) => {
       const base64Reader = new FileReader();
       base64Reader.readAsDataURL(file);
       base64Reader.onloadend = async () => {
-        const base64Data = base64Reader.result;
-        const { data } = await api.post('/api/scan', { imageBase64: base64Data });
-        setScannedData(data);
-        setLoading(false);
+        try {
+          const base64Data = base64Reader.result;
+          const { data } = await api.post('/api/scan', { imageBase64: base64Data });
+          setScannedData(data);
+        } catch (err) {
+          console.error('Scan Error:', err);
+          alert(err.response?.data?.message || 'Failed to scan receipt. Please try again.');
+        } finally {
+          setLoading(false);
+        }
       };
     } catch (err) {
-      console.error(err);
-      alert('Failed to scan receipt');
+      console.error('FileReader Error:', err);
+      alert('Failed to read file');
       setLoading(false);
     }
   };

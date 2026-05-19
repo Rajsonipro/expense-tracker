@@ -1,22 +1,32 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { AlertCircle, CheckCircle, Target } from 'lucide-react';
+import { AlertCircle, CheckCircle, Target, TrendingUp, RefreshCw } from 'lucide-react';
 import { formatINR } from '../utils/formatters';
+
+const monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 const Budget = () => {
   const [budget, setBudget] = useState(null);
   const [limitAmount, setLimitAmount] = useState('');
-  
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
   const fetchBudget = async () => {
+    setLoading(true);
     try {
       const { data } = await api.get(`/api/budget?month=${currentMonth}&year=${currentYear}`);
       setBudget(data);
-      if(data) setLimitAmount(data.limitAmount);
+      if (data) setLimitAmount(data.limitAmount);
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -26,119 +36,183 @@ const Budget = () => {
 
   const handleSetBudget = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
-        await api.post('/api/budget', {
-            month: currentMonth,
-            year: currentYear,
-            limitAmount: Number(limitAmount)
-        });
-        fetchBudget();
+      await api.post('/api/budget', {
+        month: currentMonth,
+        year: currentYear,
+        limitAmount: Number(limitAmount)
+      });
+      await fetchBudget();
     } catch (error) {
-        console.error(error);
-        alert(`Failed to set budget limit: ${error.response?.data?.message || error.message}`);
+      console.error(error);
+      alert(`Failed to set budget limit: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const percentage = budget ? Math.min((budget.spentAmount / budget.limitAmount) * 100, 100) : 0;
-  const isWarning = percentage >= 80;
+  const isWarning = percentage >= 80 && percentage < 100;
   const isDanger = percentage >= 100;
+  const remaining = budget ? Math.max(0, budget.limitAmount - budget.spentAmount) : 0;
 
-  const monthNames = ["January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
+  const progressColor = isDanger
+    ? '#ef4444'
+    : isWarning
+      ? '#f59e0b'
+      : '#10b981';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6 animate-fade-up">
+      {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Monthly Budget</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">{monthNames[currentMonth - 1]} {currentYear} • Manage your spending limits</p>
+        <h1 className="page-title">Monthly Budget</h1>
+        <p className="page-subtitle">{monthNames[currentMonth - 1]} {currentYear} · Control your spending limits</p>
       </div>
 
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 p-8 rounded-2xl shadow-sm border border-blue-200 dark:border-slate-700">
-        <form onSubmit={handleSetBudget} className="flex flex-col sm:flex-row gap-4 items-end">
+      {/* Set Budget Card */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="icon-wrap-blue">
+            <Target size={16} className="text-indigo-400" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-white">Set Budget Limit</h2>
+            <p className="text-xs text-slate-500">Define your monthly spending cap</p>
+          </div>
+        </div>
+        <form onSubmit={handleSetBudget} className="flex gap-3 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Monthly Budget Limit</label>
+            <label className="input-label">Monthly limit</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-2xl font-bold text-slate-400 dark:text-slate-500">₹</span>
-              <input 
-                type="number" 
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm pointer-events-none">₹</span>
+              <input
+                type="number"
                 required
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition text-lg font-semibold"
+                min="0"
+                className="input-field pl-8"
                 value={limitAmount}
-                onChange={(e) => setLimitAmount(e.target.value)}
+                onChange={e => setLimitAmount(e.target.value)}
                 placeholder="Enter amount"
               />
             </div>
           </div>
-          <button type="submit" className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition font-semibold shadow-lg">
-             Set Limit
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`btn-primary whitespace-nowrap ${submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+          >
+            {submitting ? (
+              <><RefreshCw size={15} className="animate-spin-slow" /> Saving...</>
+            ) : (
+              <><Target size={15} /> {budget ? 'Update' : 'Set'} Limit</>
+            )}
           </button>
         </form>
       </div>
 
-      {budget && (
-        <div className="space-y-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Spent</p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{formatINR(budget.spentAmount)}</p>
+      {/* Budget Overview */}
+      {loading ? (
+        <div className="card p-6 space-y-4">
+          <div className="animate-shimmer h-4 w-32 rounded" />
+          <div className="animate-shimmer h-10 w-full rounded-xl" />
+          <div className="grid grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => <div key={i} className="animate-shimmer h-16 rounded-xl" />)}
+          </div>
+        </div>
+      ) : budget ? (
+        <div className="space-y-4 animate-fade-up">
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="card p-4 text-center">
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Spent</p>
+              <p className="text-lg font-bold text-rose-400">{formatINR(budget.spentAmount)}</p>
             </div>
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Limit</p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{formatINR(budget.limitAmount)}</p>
+            <div className="card p-4 text-center">
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Remaining</p>
+              <p className={`text-lg font-bold ${remaining > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {formatINR(remaining)}
+              </p>
+            </div>
+            <div className="card p-4 text-center">
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Limit</p>
+              <p className="text-lg font-bold text-white">{formatINR(budget.limitAmount)}</p>
             </div>
           </div>
 
-          {/* Progress Section */}
-          <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-            <div className="flex justify-between items-center mb-4">
-              <span className={`text-lg font-bold ${isDanger ? 'text-rose-600 dark:text-rose-400' : isWarning ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                {percentage.toFixed(0)}% of Budget Used
-              </span>
-              <span className="text-slate-600 dark:text-slate-400 font-semibold">
-                {formatINR(Math.max(0, budget.limitAmount - budget.spentAmount))} Remaining
-              </span>
+          {/* Progress Card */}
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-semibold text-white">Budget Progress</p>
+                <p className="text-xs text-slate-500 mt-0.5">{monthNames[currentMonth - 1]} {currentYear}</p>
+              </div>
+              <div className={`text-2xl font-black ${isDanger ? 'text-rose-400' : isWarning ? 'text-amber-400' : 'text-emerald-400'}`}>
+                {percentage.toFixed(0)}%
+              </div>
             </div>
-            
-            <div className="w-full h-6 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-1000 rounded-full ${isDanger ? 'bg-gradient-to-r from-rose-500 to-rose-600' : isWarning ? 'bg-gradient-to-r from-orange-500 to-orange-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'}`}
-                style={{ width: `${percentage}%` }}
-              ></div>
+
+            {/* Progress bar */}
+            <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden mb-3">
+              <div
+                className="h-full rounded-full transition-all duration-1000 ease-out"
+                style={{
+                  width: `${percentage}%`,
+                  background: `linear-gradient(90deg, ${progressColor}aa, ${progressColor})`,
+                  boxShadow: `0 0 10px ${progressColor}50`
+                }}
+              />
+            </div>
+
+            <div className="flex justify-between text-xs text-slate-600">
+              <span>₹0</span>
+              <span>{formatINR(budget.limitAmount)}</span>
             </div>
           </div>
 
-          {/* Status Alerts */}
-          {isWarning && !isDanger && (
-            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-4 rounded-lg flex items-center gap-3">
-              <AlertCircle size={24} className="text-orange-600 dark:text-orange-400 flex-shrink-0" />
+          {/* Status Alert */}
+          {isDanger ? (
+            <div className="alert-danger">
+              <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-orange-900 dark:text-orange-300">Caution: Budget Limit Approaching</p>
-                <p className="text-sm text-orange-700 dark:text-orange-200 mt-1">You've used {percentage.toFixed(0)}% of your monthly budget.</p>
+                <p className="font-semibold text-rose-300">Budget Exceeded!</p>
+                <p className="text-rose-400/80 text-xs mt-0.5">
+                  You've overspent by {formatINR(budget.spentAmount - budget.limitAmount)} this month.
+                </p>
+              </div>
+            </div>
+          ) : isWarning ? (
+            <div className="alert-warning">
+              <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-300">Approaching Limit</p>
+                <p className="text-amber-400/80 text-xs mt-0.5">
+                  You've used {percentage.toFixed(0)}% of your budget. Only {formatINR(remaining)} left.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="alert-success">
+              <CheckCircle size={18} className="flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-emerald-300">On Track!</p>
+                <p className="text-emerald-400/80 text-xs mt-0.5">
+                  Great progress. You have {formatINR(remaining)} remaining for this month.
+                </p>
               </div>
             </div>
           )}
-          
-          {isDanger && (
-            <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 p-4 rounded-lg flex items-center gap-3">
-              <AlertCircle size={24} className="text-rose-600 dark:text-rose-400 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-rose-900 dark:text-rose-300">Alert: Budget Exceeded</p>
-                <p className="text-sm text-rose-700 dark:text-rose-200 mt-1">You've exceeded your monthly budget by {formatINR(budget.spentAmount - budget.limitAmount)}.</p>
-              </div>
+        </div>
+      ) : (
+        <div className="card">
+          <div className="empty-state py-16">
+            <div className="empty-icon">
+              <TrendingUp size={22} className="text-slate-600" />
             </div>
-          )}
-
-          {!isWarning && !isDanger && (
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-lg flex items-center gap-3">
-              <CheckCircle size={24} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-emerald-900 dark:text-emerald-300">Great! You're On Track</p>
-                <p className="text-sm text-emerald-700 dark:text-emerald-200 mt-1">You have {formatINR(budget.limitAmount - budget.spentAmount)} left to spend this month.</p>
-              </div>
-            </div>
-          )}
+            <p className="text-slate-400 font-medium text-sm">No budget set yet</p>
+            <p className="text-slate-600 text-xs mt-1">Set a monthly limit above to start tracking</p>
+          </div>
         </div>
       )}
     </div>

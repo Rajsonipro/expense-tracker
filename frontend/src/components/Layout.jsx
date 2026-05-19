@@ -4,13 +4,13 @@ import AIChatBot from './AIChatBot';
 
 const Layout = () => {
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
+    <div className="flex h-screen bg-[#0a0f1e] overflow-hidden">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto w-full">
-        <div className="p-6 md:p-8 w-full max-w-7xl mx-auto">
+      <main className="flex-1 overflow-y-auto bg-mesh">
+        <div className="px-6 py-8 lg:px-8 max-w-7xl mx-auto">
           <Outlet />
         </div>
-      </div>
+      </main>
       <AIChatBot />
     </div>
   );

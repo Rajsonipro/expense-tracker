@@ -1,140 +1,232 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles, ChevronDown } from 'lucide-react';
 import api from '../utils/api';
 
 const AIChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'bot', text: 'Hello! I am your AI Financial Assistant. How can I help you manage your expenses today?' }
+    {
+      role: 'bot',
+      text: "Hi! I'm your AI Financial Co-Pilot. Ask me anything about your spending, budgets, or financial goals! 🚀"
+    }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isOpen) {
+      scrollToBottom();
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [messages, isOpen]);
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    if (!query.trim() || isLoading) return;
 
     const userMessage = { role: 'user', text: query };
     setMessages(prev => [...prev, userMessage]);
+    const sentQuery = query;
     setQuery('');
     setIsLoading(true);
 
     try {
-      const response = await api.post('/api/chat', { query });
-      const botMessage = { role: 'bot', text: response.data.text };
-      setMessages(prev => [...prev, botMessage]);
+      const response = await api.post('/api/chat', { query: sentQuery });
+      setMessages(prev => [...prev, { role: 'bot', text: response.data.text }]);
     } catch (error) {
-      console.error('Chat AI Error:', error);
-      const serverError = error.response?.data?.message || error.message || 'Check your internet connection';
-      const errorMessage = { role: 'bot', text: `Sorry, ${serverError}` };
-      setMessages(prev => [...prev, errorMessage]);
+      const serverError = error.response?.data?.message || error.message || 'Check your connection';
+      setMessages(prev => [...prev, { role: 'bot', text: `⚠️ ${serverError}` }]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const quickPrompts = ['Analyze my spending', 'Am I over budget?', 'Show top expenses'];
+
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="mb-4 w-80 sm:w-96 h-[500px] bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            style={{
+              width: '360px',
+              height: '520px',
+              background: '#0d1321',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '20px',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
           >
             {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-white">
-                <div className="p-1.5 bg-white/20 rounded-lg">
-                  <Sparkles size={20} />
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.08))',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '34px', height: '34px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 10px rgba(99,102,241,0.4)'
+                }}>
+                  <Sparkles size={16} color="white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">Financial Co-Pilot</h3>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    <span className="text-[10px] opacity-80 uppercase tracking-wider font-semibold">AI Online</span>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'white', lineHeight: 1 }}>Financial Co-Pilot</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '3px' }}>
+                    <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+                    <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>AI ONLINE</span>
                   </div>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-white/10 rounded-full transition-colors text-white"
+                style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
               >
-                <X size={20} />
+                <ChevronDown size={14} />
               </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-800">
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {messages.map((msg, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, x: msg.role === 'user' ? 10 : -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}
                 >
-                  <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      msg.role === 'user' ? 'bg-indigo-600' : 'bg-gray-800 border border-gray-700'
-                    }`}>
-                      {msg.role === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-blue-400" />}
+                  <div style={{ display: 'flex', gap: '8px', maxWidth: '85%', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
+                    {/* Avatar */}
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: msg.role === 'user'
+                        ? 'linear-gradient(135deg, #6366f1, #818cf8)'
+                        : 'rgba(255,255,255,0.06)',
+                      border: msg.role === 'bot' ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                    }}>
+                      {msg.role === 'user'
+                        ? <User size={13} color="white" />
+                        : <Bot size={13} color="#818cf8" />
+                      }
                     </div>
-                    <div className={`p-3 rounded-2xl text-sm ${
-                      msg.role === 'user' 
-                        ? 'bg-indigo-600 text-white rounded-tr-none' 
-                        : 'bg-gray-800 text-gray-200 border border-gray-700 rounded-tl-none'
-                    }`}>
+
+                    {/* Bubble */}
+                    <div style={{
+                      padding: '10px 13px',
+                      borderRadius: msg.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
+                      fontSize: '13px',
+                      lineHeight: 1.6,
+                      background: msg.role === 'user'
+                        ? 'linear-gradient(135deg, #6366f1, #818cf8)'
+                        : 'rgba(255,255,255,0.05)',
+                      border: msg.role === 'bot' ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                      color: msg.role === 'user' ? 'white' : '#cbd5e1',
+                      boxShadow: msg.role === 'user' ? '0 4px 12px rgba(99,102,241,0.3)' : 'none',
+                    }}>
                       {msg.text}
                     </div>
                   </div>
                 </motion.div>
               ))}
+
               {isLoading && (
-                <div className="flex justify-start">
-                  <div className="flex gap-2 max-w-[85%]">
-                    <div className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center">
-                      <Bot size={16} className="text-blue-400" />
-                    </div>
-                    <div className="p-3 rounded-2xl bg-gray-800 border border-gray-700 text-gray-400 text-sm flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin" />
-                      Analyzing data...
-                    </div>
+                <div style={{ display: 'flex', gap: '8px', maxWidth: '85%' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Bot size={13} color="#818cf8" />
+                  </div>
+                  <div style={{ padding: '10px 14px', borderRadius: '4px 14px 14px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: '5px', alignItems: 'center' }}>
+                    {[0, 1, 2].map(i => (
+                      <span
+                        key={i}
+                        style={{
+                          width: '6px', height: '6px', borderRadius: '50%',
+                          background: '#6366f1', display: 'inline-block',
+                          animation: `bounce 1.2s ${i * 0.2}s infinite`
+                        }}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Quick prompts */}
+            {messages.length <= 1 && (
+              <div style={{ paddingLeft: '16px', paddingRight: '16px', paddingBottom: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {quickPrompts.map(p => (
+                  <button
+                    key={p}
+                    onClick={() => { setQuery(p); inputRef.current?.focus(); }}
+                    style={{
+                      fontSize: '11px', fontWeight: 600, color: '#818cf8',
+                      background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)',
+                      borderRadius: '20px', padding: '4px 12px', cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Input */}
-            <form onSubmit={handleSend} className="p-4 border-t border-gray-800 bg-gray-900/50">
-              <div className="relative">
+            <form onSubmit={handleSend} style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input
+                  ref={inputRef}
                   type="text"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Ask me anything..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl py-3 pl-4 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Ask anything..."
+                  style={{
+                    flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '12px', padding: '9px 14px', fontSize: '13px', color: 'white',
+                    outline: 'none', caretColor: '#6366f1',
+                    fontFamily: 'Inter, sans-serif'
+                  }}
+                  onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.4)'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
                 />
                 <button
                   type="submit"
                   disabled={isLoading || !query.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-lg transition-colors"
+                  style={{
+                    width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                    background: query.trim() && !isLoading ? 'linear-gradient(135deg, #6366f1, #818cf8)' : 'rgba(255,255,255,0.06)',
+                    border: 'none', cursor: query.trim() && !isLoading ? 'pointer' : 'not-allowed',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', transition: 'all 0.2s',
+                    boxShadow: query.trim() && !isLoading ? '0 4px 10px rgba(99,102,241,0.4)' : 'none',
+                    opacity: isLoading ? 0.5 : 1
+                  }}
                 >
-                  <Send size={16} />
+                  {isLoading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={15} />}
                 </button>
               </div>
-              <p className="mt-2 text-[10px] text-center text-gray-500 italic">
+              <p style={{ textAlign: 'center', fontSize: '10px', color: '#334155', marginTop: '8px' }}>
                 Powered by Gemini 2.0 Flash
               </p>
             </form>
@@ -142,23 +234,53 @@ const AIChatBot = () => {
         )}
       </AnimatePresence>
 
+      {/* FAB Button */}
       <motion.button
-        whileHover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white relative group"
+        style={{
+          width: '52px', height: '52px',
+          background: isOpen
+            ? 'rgba(17,24,39,0.9)'
+            : 'linear-gradient(135deg, #6366f1, #818cf8)',
+          border: isOpen ? '1px solid rgba(255,255,255,0.1)' : 'none',
+          borderRadius: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: isOpen
+            ? '0 4px 20px rgba(0,0,0,0.4)'
+            : '0 6px 24px rgba(99,102,241,0.5)',
+          color: 'white',
+          position: 'relative',
+        }}
+        aria-label="Toggle AI chat"
       >
-        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
+        <AnimatePresence mode="wait">
+          {isOpen
+            ? <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} style={{ display: 'flex' }}><X size={20} /></motion.div>
+            : <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} style={{ display: 'flex' }}><Sparkles size={20} /></motion.div>
+          }
+        </AnimatePresence>
+
+        {/* Notification dot */}
         {!isOpen && (
-          <span className="absolute -top-1 -right-1 flex h-4 w-4">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-500 border-2 border-slate-900 text-[10px] items-center justify-center font-bold">1</span>
+          <span style={{ position: 'absolute', top: '-3px', right: '-3px', width: '14px', height: '14px', borderRadius: '50%', background: '#10b981', border: '2px solid #050911', fontSize: '8px', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            1
           </span>
         )}
-        <div className="absolute right-full mr-4 bg-gray-900 border border-gray-800 text-white text-xs py-2 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-          Talk to your AI Co-Pilot
-        </div>
       </motion.button>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-5px); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 };

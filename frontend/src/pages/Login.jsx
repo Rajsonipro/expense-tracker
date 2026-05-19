@@ -1,91 +1,127 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Zap, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
     try {
       await login(email, password);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to login');
+      setError(err.response?.data?.message || 'Failed to login. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 px-4">
-      <div className="max-w-md w-full">
-        {/* Branding */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-2 rounded-lg">
-              <Lock size={24} className="text-white" />
+    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: '#050911', fontFamily: 'Inter, sans-serif' }}>
+      {/* Ambient glow */}
+      <div style={{ position: 'fixed', top: '-20%', left: '-20%', width: '60%', height: '60%', background: 'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+      <div style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1 }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <div style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', borderRadius: '10px', padding: '8px', boxShadow: '0 4px 14px rgba(99,102,241,0.45)' }}>
+              <Zap size={20} color="white" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">TrackIt</h1>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: 'white', letterSpacing: '-0.02em' }}>TrackIt</span>
           </div>
-          <p className="text-slate-500 dark:text-slate-400">Smart expense tracking for everyone</p>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>Your smart finance companion</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome back</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-6">Sign in to your account to continue</p>
+        <div style={{ background: 'rgba(17,24,39,0.9)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '32px', backdropFilter: 'blur(16px)', boxShadow: '0 25px 60px rgba(0,0,0,0.5)' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'white', marginBottom: '4px', letterSpacing: '-0.02em' }}>Welcome back</h2>
+          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '24px' }}>Sign in to your account to continue</p>
 
           {error && (
-            <div className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 p-4 rounded-lg mb-6 text-sm font-medium flex items-center gap-2">
-              <span className="text-lg">⚠️</span>{error}
+            <div style={{
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              color: '#fca5a5',
+              fontSize: '13px',
+              display: 'flex', alignItems: 'center', gap: '8px'
+            }}>
+              ⚠️ {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
-              <div className="relative">
-                <Mail size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <input 
-                  type="email" 
+              <label className="input-label">Email Address</label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+                <input
+                  type="email"
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
-                <Link to="/forgot-password" size={18} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Forgot password?</Link>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label className="input-label" style={{ margin: 0 }}>Password</label>
+                <Link to="/forgot-password" style={{ fontSize: '12px', color: '#6366f1', textDecoration: 'none', fontWeight: 600 }}>
+                  Forgot password?
+                </Link>
               </div>
-              <div className="relative">
-                <Lock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <input 
-                  type="password" 
+              <div style={{ position: 'relative' }}>
+                <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+                <input
+                  type={showPass ? 'text' : 'password'}
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  className="input-field"
+                  style={{ paddingLeft: '40px', paddingRight: '44px' }}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', padding: '4px' }}
+                >
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
-            <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 mt-2">
-              Sign In <ArrowRight size={18} />
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary"
+              style={{ width: '100%', padding: '12px', marginTop: '4px', fontSize: '14px', opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+            >
+              {loading ? 'Signing in...' : (<>Sign In <ArrowRight size={16} /></>)}
             </button>
-
           </form>
 
-          <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
-            <p className="text-center text-slate-600 dark:text-slate-400">
-              Don't have an account? <Link to="/register" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Sign up</Link>
+          <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
+            <p style={{ color: '#475569', fontSize: '13px' }}>
+              Don&apos;t have an account?{' '}
+              <Link to="/register" style={{ color: '#818cf8', fontWeight: 600, textDecoration: 'none' }}>
+                Sign up free
+              </Link>
             </p>
           </div>
         </div>

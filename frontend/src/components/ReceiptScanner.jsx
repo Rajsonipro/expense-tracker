@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, Check, X, Sparkles } from 'lucide-react';
+import { Upload, Loader2, Check, X, Sparkles, ImagePlus, RefreshCw } from 'lucide-react';
 import api from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -7,13 +7,13 @@ const ReceiptScanner = ({ isOpen, onClose, onTransactionAdded }) => {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [scannedData, setScannedData] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
+  const processFile = async (file) => {
     if (!file) return;
 
-    // Preview
     const reader = new FileReader();
     reader.onloadend = () => setPreview(reader.result);
     reader.readAsDataURL(file);
@@ -21,146 +21,180 @@ const ReceiptScanner = ({ isOpen, onClose, onTransactionAdded }) => {
     setLoading(true);
     setScannedData(null);
 
-    try {
-      const base64Reader = new FileReader();
-      base64Reader.readAsDataURL(file);
-      base64Reader.onloadend = async () => {
-        try {
-          const base64Data = base64Reader.result;
-          const { data } = await api.post('/api/scan', { imageBase64: base64Data });
-          setScannedData(data);
-        } catch (err) {
-          console.error('Scan Error:', err);
-          alert(err.response?.data?.message || 'Failed to scan receipt. Please try again.');
-        } finally {
-          setLoading(false);
-        }
-      };
-    } catch (err) {
-      console.error('FileReader Error:', err);
-      alert('Failed to read file');
-      setLoading(false);
-    }
+    const base64Reader = new FileReader();
+    base64Reader.readAsDataURL(file);
+    base64Reader.onloadend = async () => {
+      try {
+        const { data } = await api.post('/api/scan', { imageBase64: base64Reader.result });
+        setScannedData(data);
+      } catch (err) {
+        console.error('Scan Error:', err);
+        alert(err.response?.data?.message || 'Failed to scan receipt. Please try again.');
+        setPreview(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+  };
+
+  const handleFileChange = (e) => processFile(e.target.files[0]);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) processFile(file);
   };
 
   const handleSave = async () => {
+    setSaving(true);
     try {
-      setLoading(true);
-      await api.post('/api/transactions', {
-        ...scannedData,
-        type: 'expense'
-      });
+      await api.post('/api/transactions', { ...scannedData, type: 'expense' });
       onTransactionAdded();
       onClose();
-      // Reset
       setPreview(null);
       setScannedData(null);
     } catch (err) {
-      console.error(err);
       alert('Failed to save transaction');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
+  };
+
+  const handleReset = () => {
+    setPreview(null);
+    setScannedData(null);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden"
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="modal-panel w-full max-w-sm"
       >
-        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-gradient-to-r from-purple-500 to-indigo-600">
-          <div className="flex items-center gap-2 text-white">
-            <Sparkles size={20} />
-            <h2 className="text-xl font-bold">AI Receipt Scanner</h2>
+        {/* Header */}
+        <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(99,102,241,0.1))', borderBottomColor: 'rgba(168,85,247,0.15)' }}>
+          <div className="flex items-center gap-3">
+            <div className="icon-wrap-purple">
+              <Sparkles size={16} className="text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white">AI Receipt Scanner</h2>
+              <p className="text-xs text-slate-500">Powered by Gemini</p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full text-white transition">
-            <X size={20} />
+          <button onClick={onClose} className="btn-icon">
+            <X size={16} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {!preview && !scannedData && (
-            <div 
+        <div className="modal-body space-y-4">
+          {/* Upload Area */}
+          {!preview && (
+            <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-12 text-center hover:border-purple-500 dark:hover:border-purple-400 cursor-pointer transition group"
+              onDrop={handleDrop}
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-200 ${
+                dragOver
+                  ? 'border-purple-500 bg-purple-500/8'
+                  : 'border-white/10 hover:border-purple-500/40 hover:bg-purple-500/5'
+              }`}
             >
-              <div className="bg-purple-100 dark:bg-purple-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition">
-                <Upload size={28} className="text-purple-600 dark:text-purple-400" />
+              <div className="icon-wrap-purple w-14 h-14 mx-auto mb-4">
+                <ImagePlus size={22} className="text-purple-400" />
               </div>
-              <p className="text-slate-700 dark:text-slate-300 font-semibold mb-1">Click to upload receipt</p>
-              <p className="text-slate-500 text-sm">JPEG, PNG supported</p>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
+              <p className="text-slate-300 font-semibold text-sm mb-1">
+                {dragOver ? 'Drop it here!' : 'Click or drag & drop'}
+              </p>
+              <p className="text-slate-600 text-xs">JPEG, PNG, WEBP supported</p>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
                 accept="image/*"
               />
             </div>
           )}
 
+          {/* Image Preview */}
           {preview && (
-            <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
-              <img src={preview} alt="Receipt" className="max-h-full object-contain" />
+            <div className="relative rounded-xl overflow-hidden bg-[#0a0f1e]" style={{ aspectRatio: '4/3' }}>
+              <img src={preview} alt="Receipt" className="w-full h-full object-contain" />
               {loading && (
-                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex flex-col items-center justify-center text-white">
-                  <Loader2 size={40} className="animate-spin mb-2" />
-                  <p className="font-medium">Gemini is analyzing...</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+                  <div className="w-12 h-12 rounded-full border-2 border-purple-500/30 border-t-purple-500 animate-spin-slow mb-3" />
+                  <p className="text-white text-sm font-semibold">Gemini is analyzing...</p>
+                  <p className="text-slate-400 text-xs mt-1">Extracting receipt data</p>
                 </div>
               )}
             </div>
           )}
 
+          {/* Scanned Data */}
           <AnimatePresence>
             {scannedData && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-4 pt-2"
+                className="space-y-3"
               >
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Merchant</p>
-                    <p className="font-bold text-slate-900 dark:text-white capitalize">{scannedData.title}</p>
+                <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                    <Check size={11} />
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Amount</p>
-                    <p className="font-bold text-slate-900 dark:text-white">₹{scannedData.amount}</p>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Category</p>
-                    <p className="font-bold text-slate-900 dark:text-white">{scannedData.category}</p>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Date</p>
-                    <p className="font-bold text-slate-900 dark:text-white">{scannedData.date}</p>
-                  </div>
+                  Receipt scanned successfully
                 </div>
 
-                <div className="flex gap-3 pt-2">
-                  <button 
-                    onClick={() => {setPreview(null); setScannedData(null);}} 
-                    className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-                  >
-                    Rescan
-                  </button>
-                  <button 
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 dark:shadow-none hover:translate-y-[-2px] transition disabled:opacity-50"
-                  >
-                    Confirm & Save
-                  </button>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Merchant', value: scannedData.title },
+                    { label: 'Amount', value: `₹${scannedData.amount}` },
+                    { label: 'Category', value: scannedData.category },
+                    { label: 'Date', value: scannedData.date },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">{label}</p>
+                      <p className="text-sm font-bold text-white capitalize">{value || '—'}</p>
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
+
+        {/* Footer Buttons */}
+        {(preview || scannedData) && (
+          <div className="modal-footer">
+            <button
+              onClick={handleReset}
+              className="btn-secondary flex-1"
+            >
+              <RefreshCw size={14} /> Rescan
+            </button>
+            {scannedData && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className={`btn-primary flex-1 ${saving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                style={{ background: saving ? undefined : 'linear-gradient(135deg, #8b5cf6, #6366f1)', boxShadow: '0 4px 14px rgba(139,92,246,0.4)' }}
+              >
+                {saving ? (
+                  <><Loader2 size={14} className="animate-spin-slow" /> Saving...</>
+                ) : (
+                  <><Check size={14} /> Confirm & Save</>
+                )}
+              </button>
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );
